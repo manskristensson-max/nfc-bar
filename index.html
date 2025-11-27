@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NFC Service – Privat bar</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#111;color:#eee}
+  header{padding:12px 16px;background:#1a1a1a;border-bottom:1px solid #333}
+  main{padding:16px}
+  .grid{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:12px;max-width:900px;margin:0 auto}
+  .table{background:#222;border:2px solid #444;border-radius:12px;padding:16px;text-align:center;cursor:pointer;user-select:none;transition:transform .05s,border-color .2s,background .2s}
+  .table:hover{transform:translateY(-2px)}
+  .name{font-size:22px;margin-bottom:8px}
+  .status{font-size:14px;opacity:.85}
+  .table.idle{background:#123417;border-color:#1f6f2d}
+  .table.needs_service{background:#4a1414;border-color:#c33}
+  .updated{font-size:12px;opacity:.6;margin-top:6px}
+  .box{max-width:560px;margin:24px auto;background:#1b1b1b;border:1px solid #333;border-radius:10px;padding:16px}
+  .ok{background:#123417;color:#e6ffe6;border:1px solid #1f6f2d;padding:16px;border-radius:8px}
+  .err{background:#4a1414;color:#ffecec;border:1px solid #c33;padding:16px;border-radius:8px}
+</style>
+<script type="module">
+  // 🔑 KLIStra IN DIN RIKTIGA firebaseConfig här
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  const BAR_ID = "privatebar";
+
+  // Tokens per bord – dessa måste matcha NFC-URL:erna
+  const TABLE_TOKENS = {
+    "1":"TABLE1TOKEN","2":"TABLE2TOKEN","3":"TABLE3TOKEN","4":"TABLE4TOKEN","5":"TABLE5TOKEN",
+    "6":"TABLE6TOKEN","7":"TABLE7TOKEN","8":"TABLE8TOKEN","9":"TABLE9TOKEN","10":"TABLE10TOKEN"
+  };
+
+  // --- Firebase SDK ---
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getFirestore, collection, doc, onSnapshot, setDoc, serverTimestamp, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // --- Helpers ---
+  const qs = k => new URLSearchParams(location.search).get(k);
+  const isStaff = () => qs('staff') === '1';
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    // Anonym inloggning (kräv: Auth → Anonymous enabled)
+    try { await signInAnonymously(auth); } catch {}
+
+    if (isStaff()) {
+      renderStaff();
+    } else {
+      renderGuest();
+    }
+  });
+
+  // --- Gästvy (NFC-länk) ---
+  async function renderGuest(){
+    document.body.innerHTML = `
+      <header><h1>Kalla på personal</h1></header>
+      <main><div class="box"><div id="out">Bearbetar...</div></div></main>
+    `;
+    const out = document.getElementById('out');
+    const ok  = h => out.innerHTML = `<div class="ok">${h}</div>`;
+    const err = h => out.innerHTML = `<div class="err">${h}</div>`;
+
+    const rid = qs('rid');
+    const table = qs('table');
+    const tok = qs('tok');
+
+    if (!rid || !table || !tok) return err("Ogiltig länk: saknade parametrar.");
+    if (rid !== BAR_ID) return err("Ogiltig restaurang.");
+    if (TABLE_TOKENS[String(table)] !== String(tok)) return err("Ogiltig tagg.");
+
+    try {
+      const ref  = doc(collection(db,'bars',BAR_ID,'tables'), String(table));
+      const snap = await getDoc(ref);
+      const now  = Date.now();
+      if (snap.exists()) {
+        const data = snap.data();
+        const last = data.updatedAt?.seconds ? data.updatedAt.seconds*1000 : 0;
+        if (data.status === 'needs_service' && (now - last) < 30000) {
+          return ok(`Tack! <b>Bord ${table}</b> är redan markerat.`);
+        }
+      }
+      await setDoc(ref, { status:'needs_service', updatedAt: serverTimestamp() }, { merge:true });
+      ok(`Tack! Vi har meddelat personalen. <b>Bord ${table}</b> är markerat.`);
+    } catch (e) {
+      console.error(e); err("Tekniskt fel. Försök igen eller be personalen.");
+    }
+  }
+
+  // --- Personalvy ---
+  function renderStaff(){
+    document.body.innerHTML = `
+      <header><h1>Restaurangöversikt – Privat bar</h1><p>Rött = behöver service • Grönt = idle • Tryck för att återställa</p></header>
+      <main>
+        <audio id="ding" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav"></audio>
+        <div id="grid" class="grid"></div>
+      </main>
+    `;
+    const grid  = document.getElementById('grid');
+    const audio = document.getElementById('ding');
+    const tables = Array.from({length:10}, (_,i)=> String(i+1));
+
+    function renderTable(tId, data){
+      const el = document.createElement('div');
+      el.className = 'table ' + (data?.status || 'idle');
+      el.dataset.table = tId;
+      el.innerHTML = `
+        <div class="name">Bord ${tId}</div>
+        <div class="status">${data?.status || 'idle'}</div>
+        <div class="updated">${data?.updatedAt ? new Date(data.updatedAt.seconds*1000).toLocaleTimeString() : ''}</div>
+      `;
+      el.addEventListener('click', async () => {
+        await setDoc(doc(collection(db,'bars',BAR_ID,'tables'), tId), { status:'idle', updatedAt: serverTimestamp() }, { merge:true });
+      });
+      return el;
+    }
+
+    tables.forEach(t => grid.appendChild(renderTable(t, {})));
+
+    tables.forEach(t => {
+      const ref = doc(collection(db,'bars',BAR_ID,'tables'), t);
+      onSnapshot(ref, (snap) => {
+        const data = snap.data() || { status:'idle' };
+        const el = grid.querySelector(`.table[data-table="${t}"]`);
+        if (!el) return;
+        const wasRed = el.className.includes('needs_service');
+        el.className = 'table ' + (data.status || 'idle');
+        el.querySelector('.status').textContent  = data.status || 'idle';
+        el.querySelector('.updated').textContent = data.updatedAt ? new Date(data.updatedAt.seconds*1000).toLocaleTimeString() : '';
+        if (!wasRed && data.status === 'needs_service') audio?.play?.().catch(()=>{});
+      });
+    });
+  }
+</script>
+</head>
+<body></body>
+</html>
