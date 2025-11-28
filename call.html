@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kalla på personal</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;line-height:1.5}
+    .ok{background:#123417;color:#e6ffe6;border:1px solid #1f6f2d;padding:16px;border-radius:8px}
+    .err{background:#4a1414;color:#ffecec;border:1px solid #c33;padding:16px;border-radius:8px}
+  </style>
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyDoghXoQWNjFIjfAHltWkTt7zJ1NnpqSMc",
+      authDomain: "service-5083b.firebaseapp.com",
+      projectId: "service-5083b",
+      storageBucket: "service-5083b.appspot.com",
+      messagingSenderId: "218246169130",
+      appId: "1:218246169130:web:9d1a390cb39ec83dffb953",
+      measurementId: "G-Z1NCJ874ER"
+    };
+    const BAR_ID = "privatebar";
+    const TABLE_TOKENS = {
+      "1":"TABLE1TOKEN","2":"TABLE2TOKEN","3":"TABLE3TOKEN","4":"TABLE4TOKEN","5":"TABLE5TOKEN",
+      "6":"TABLE6TOKEN","7":"TABLE7TOKEN","8":"TABLE8TOKEN","9":"TABLE9TOKEN","10":"TABLE10TOKEN"
+    };
+
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getFirestore, collection, doc, setDoc, serverTimestamp, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const qs = k => new URLSearchParams(location.search).get(k);
+
+    async function main() {
+      const out = document.getElementById('out');
+      const ok = h => out.innerHTML = `<div class="ok">${h}</div>`;
+      const err = h => out.innerHTML = `<div class="err">${h}</div>`;
+
+      const rid = qs('rid');
+      const table = qs('table');
+      const tok = qs('tok');
+
+      if (!rid || !table || !tok) return err("Ogiltig länk: saknade parametrar.");
+      if (rid !== BAR_ID) return err("Ogiltig restaurang.");
+      if (TABLE_TOKENS[String(table)] !== String(tok)) return err("Ogiltig tagg.");
+
+      try {
+        await signInAnonymously(auth);
+        const ref = doc(collection(db, 'bars', BAR_ID, 'tables'), String(table));
+        const snap = await getDoc(ref);
+        const now = Date.now();
+        if (snap.exists()) {
+          const data = snap.data();
+          const last = data.updatedAt?.seconds ? data.updatedAt.seconds * 1000 : 0;
+          if (data.status === 'needs_service' && (now - last) < 30000)
+            return ok(`Tack! <b>Bord ${table}</b> är redan markerat.`);
+        }
+        await setDoc(ref, { status: 'needs_service', updatedAt: serverTimestamp() }, { merge: true });
+        ok(`Tack! Vi har meddelat personalen. <b>Bord ${table}</b> är markerat.`);
+      } catch (e) {
+        console.error(e);
+        err("Tekniskt fel. Försök igen eller be personalen.");
+      }
+    }
+    window.addEventListener('DOMContentLoaded', main);
+  </script>
+</head>
+<body>
+  <h2>Kalla på personal</h2>
+  <div id="out">Bearbetar...</div>
+</body>
+</html>
