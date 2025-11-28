@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Personalvy – Privat bar</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#111;color:#eee}
+    header{padding:12px 16px;background:#1a1a1a;border-bottom:1px solid #333}
+    main{padding:16px}
+    .grid{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:12px;max-width:900px;margin:0 auto}
+    .table{background:#222;border:2px solid #444;border-radius:12px;padding:16px;text-align:center;cursor:pointer;user-select:none;transition:transform .05s,border-color .2s,background .2s}
+    .table:hover{transform:translateY(-2px)}
+    .name{font-size:22px;margin-bottom:8px}
+    .status{font-size:14px;opacity:.85}
+    .table.idle{background:#123417;border-color:#1f6f2d}
+    .table.needs_service{background:#4a1414;border-color:#c33}
+    .updated{font-size:12px;opacity:.6;margin-top:6px}
+  </style>
+
+  <script type="module">
+    // 🔑 Din Firebase-config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDoghXoQWNjFIjfAHltWkTt7zJ1NnpqSMc",
+      authDomain: "service-5083b.firebaseapp.com",
+      projectId: "service-5083b",
+      storageBucket: "service-5083b.appspot.com",
+      messagingSenderId: "218246169130",
+      appId: "1:218246169130:web:9d1a390cb39ec83dffb953",
+      measurementId: "G-Z1NCJ874ER"
+    };
+    const BAR_ID = "privatebar";
+    window.__CONFIG__ = { firebaseConfig, BAR_ID };
+  </script>
+
+  <!-- cache-busting så den hämtar senaste JS -->
+  <script type="module" src="./floorplan.js?v=2" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Restaurangöversikt – Privat bar</h1>
+    <p>Rött = behöver service • Grönt = idle • Tryck för att återställa</p>
+  </header>
+  <main>
+    <audio id="ding" preload="auto">
+      <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
+    </audio>
+    <div id="grid" class="grid"></div>
+  </main>
+</body>
+</html>
