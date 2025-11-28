@@ -10,18 +10,32 @@
       --red:#ff4d4d; --red-bg:#3a1212; --txt:#e9ecf1; --txt-dim:#a7b0c0; --accent:#6cf0ff;
     }
     *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:radial-gradient(1200px 800px at 80% -20%, #122, transparent), var(--bg); color:var(--txt)}
-    header{padding:14px 18px;background:linear-gradient(180deg, #121318, #0f1015); border-bottom:1px solid #1d2030;
-      display:flex;align-items:center;justify-content:space-between; flex-wrap:wrap; gap:10px}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      margin:0;
+      background:radial-gradient(1200px 800px at 80% -20%, #122, transparent), var(--bg);
+      color:var(--txt)
+    }
+    header{
+      padding:14px 18px;
+      background:linear-gradient(180deg, #121318, #0f1015);
+      border-bottom:1px solid #1d2030;
+      display:flex;align-items:center;justify-content:space-between;
+      flex-wrap:wrap;gap:10px
+    }
     .brand{display:flex;align-items:center;gap:12px}
-    .brand .dot{width:10px;height:10px;border-radius:999px;background:var(--accent); box-shadow:0 0 12px var(--accent)}
+    .brand img{
+      height:42px;width:auto;border-radius:6px;
+      box-shadow:0 0 12px rgba(108,240,255,.25)
+    }
     h1{font-size:20px; margin:0}
     .hint{opacity:.8;font-size:14px}
-    main{padding:18px}
+    main{padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center}
     .grid{
       display:grid;
       grid-template-columns: repeat(5, minmax(140px, 1fr));
-      gap:14px; max-width:1100px; margin:0 auto;
+      gap:14px; max-width:1100px; width:100%;
+      margin:0 auto;
     }
     @media (max-width:980px){ .grid{grid-template-columns: repeat(4, minmax(120px, 1fr));} }
     @media (max-width:760px){ .grid{grid-template-columns: repeat(3, minmax(110px, 1fr));} }
@@ -55,11 +69,42 @@
       50%     { box-shadow: 0 0 0 2px #ff7a7a33, 0 0 26px rgba(255,77,77,.25); }
     }
 
-    .legend{max-width:1100px;margin:10px auto 0;display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--txt-dim)}
-    .pill{display:inline-flex;align-items:center;gap:8px;background:#151824;border:1px solid #1f2333;color:var(--txt-dim);padding:8px 10px;border-radius:999px}
+    .legend{
+      max-width:1100px;margin:10px auto 0;
+      display:flex;gap:10px;flex-wrap:wrap;
+      font-size:13px;color:var(--txt-dim)
+    }
+    .pill{display:inline-flex;align-items:center;gap:8px;
+      background:#151824;border:1px solid #1f2333;color:var(--txt-dim);
+      padding:8px 10px;border-radius:999px}
     .dot{width:10px;height:10px;border-radius:999px}
     .dot.green{background:#3ad15a; box-shadow:0 0 10px #3ad15a44}
     .dot.red{background:#ff4d4d; box-shadow:0 0 10px #ff4d4d44}
+
+    button#soundBtn{
+      margin-left:8px;background:#222;border:1px solid #3a3f55;
+      color:#e9ecf1;border-radius:8px;padding:6px 10px;cursor:pointer;
+      transition:background .2s ease;
+    }
+    button#soundBtn:hover{background:#2a2d40}
+
+    footer{
+      margin-top:40px;
+      text-align:center;
+      padding:20px;
+      opacity:.9;
+    }
+    footer img{
+      width:200px;
+      max-width:60vw;
+      opacity:.9;
+      filter: drop-shadow(0 0 14px rgba(108,240,255,.3));
+      transition:transform .3s ease, filter .3s ease;
+    }
+    footer img:hover{
+      transform:scale(1.05);
+      filter: drop-shadow(0 0 24px rgba(108,240,255,.5));
+    }
   </style>
 
   <script type="module">
@@ -76,25 +121,29 @@
     const BAR_ID = "privatebar";
     window.__CONFIG__ = { firebaseConfig, BAR_ID };
   </script>
-  <script type="module" src="./floorplan.js?v=3" defer></script>
+  <script type="module" src="./floorplan.js?v=5" defer></script>
 </head>
 <body>
   <header>
     <div class="brand">
-  <img src="./logo.png" alt="Bar-logotyp" style="height:42px;width:auto;border-radius:6px;box-shadow:0 0 12px rgba(108,240,255,.25)" />
-  <h1>Privat bar – Personalvy</h1>
-</div>
-    <div class="hint">Tryck på rött bord för att återställa • Ljud vid ny kallelse</div>
+      <img src="./logo.png" alt="Bar-logotyp" />
+      <h1>Privat bar – Personalvy</h1>
+    </div>
+    <div class="hint">
+      <span>Tryck på rött bord för att återställa • Ljud vid ny kallelse</span>
+      <button id="soundBtn">🔈 Aktivera ljud</button>
+    </div>
   </header>
+
   <main>
     <div class="legend">
       <span class="pill"><span class="dot green"></span> Idle</span>
       <span class="pill"><span class="dot red"></span> Behöver service</span>
     </div>
-    <audio id="ding" preload="auto">
-      <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
     <div id="grid" class="grid"></div>
+    <footer>
+      <img src="./logo.png" alt="Bar-logotyp stor" />
+    </footer>
   </main>
 </body>
 </html>
